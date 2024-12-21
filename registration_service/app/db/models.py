@@ -142,3 +142,60 @@ class Department:
         async with conn.cursor() as cursor:
             await cursor.execute("SELECT * FROM departments")
             return await cursor.fetchall()
+
+class PatientRecord:
+    @staticmethod
+    async def add(conn, patient_id, doctor_id, department_id, patient_status, doctor_note, prescription):
+        async with conn.cursor() as cursor:
+            await cursor.execute("""
+                INSERT INTO patient_records (patient_id, id, department_id, patient_status, doctor_note, prescription)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (patient_id, doctor_id, department_id, patient_status, doctor_note, prescription))
+            await conn.commit()
+
+    @staticmethod
+    async def get_all(conn, patient_id=None, doctor_id=None):
+        query = "SELECT * FROM patient_records WHERE 1=1"
+        params = []
+
+        if patient_id:
+            query += " AND patient_id = %s"
+            params.append(patient_id)
+        if doctor_id:
+            query += " AND id = %s"
+            params.append(doctor_id)
+
+        async with conn.cursor() as cursor:
+            await cursor.execute(query, tuple(params))
+            return await cursor.fetchall()
+
+    @staticmethod
+    async def update(conn, record_id, patient_status=None, doctor_note=None, prescription=None):
+        updates = []
+        params = []
+
+        if patient_status:
+            updates.append("patient_status = %s")
+            params.append(patient_status)
+        if doctor_note:
+            updates.append("doctor_note = %s")
+            params.append(doctor_note)
+        if prescription:
+            updates.append("prescription = %s")
+            params.append(prescription)
+
+        params.append(record_id)
+
+        async with conn.cursor() as cursor:
+            await cursor.execute(f"""
+                UPDATE patient_records
+                SET {', '.join(updates)}
+                WHERE record_id = %s
+            """, tuple(params))
+            await conn.commit()
+
+    @staticmethod
+    async def delete(conn, record_id):
+        async with conn.cursor() as cursor:
+            await cursor.execute("DELETE FROM patient_records WHERE record_id = %s", (record_id,))
+            await conn.commit()
