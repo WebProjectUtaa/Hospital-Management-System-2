@@ -32,6 +32,17 @@ class EmployeeService:
         }
 
     @staticmethod
+    async def update_employee(
+        conn, employee_id, name=None, surname=None, role=None, contacts=None, department=None, password=None
+    ):
+        if password:
+            password = hash_password(password)
+        await Employee.update(conn, employee_id, name, surname, role, contacts, department, password)
+        return {"message": f"Employee with ID {employee_id} updated successfully!"}
+
+
+
+    @staticmethod
     async def delete_employee(conn, employee_id):
         await Employee.delete(conn, employee_id)
         return {"message": f"Employee with ID {employee_id} deleted successfully!"}

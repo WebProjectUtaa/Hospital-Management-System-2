@@ -30,6 +30,20 @@ async def get_all_patients(request):
     except Exception as e:
         return response.json({"error": str(e)}, status=500)
 
+@patient_bp.put("/<patient_id:int>")
+@role_required(["receptionist"])
+async def update_patient(request, patient_id):
+    data = request.json
+    if not data:
+        return response.json({"error": "No data provided to update"}, status=400)
+    try:
+        conn = await get_db_connection()
+        result = await PatientService.update_patient(conn, patient_id, data)
+        return response.json(result, status=200)
+    except Exception as e:
+        return response.json({"error": str(e)}, status=500)
+
+
 @patient_bp.delete("/<patient_id:int>")
 @role_required(["receptionist"])  # Receptionist hasta silebilir
 async def delete_patient(request, patient_id):

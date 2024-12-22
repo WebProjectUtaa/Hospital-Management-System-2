@@ -30,6 +30,19 @@ async def get_all_employees(request):
     except Exception as e:
         return response.json({"error": str(e)}, status=500)
 
+@employee_bp.put("/<employee_id:int>")
+@role_required(["admin"])
+async def update_employee(request, employee_id):
+    data = request.json
+    if not data:
+        return response.json({"error": "No data provided to update"}, status=400)
+    try:
+        conn = await get_db_connection()
+        result = await EmployeeService.update_employee(conn, employee_id, **data)
+        return response.json(result, status=200)
+    except Exception as e:
+        return response.json({"error": str(e)}, status=500)
+
 @employee_bp.delete("/<employee_id:int>")
 @role_required(["admin"])
 async def delete_employee(request, employee_id):

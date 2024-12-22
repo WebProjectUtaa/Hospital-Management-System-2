@@ -25,6 +25,24 @@ class PatientService:
         return {"message": f"Patient with ID {patient_id} updated successfully!"}
 
     @staticmethod
+    async def update_patient(conn, patient_id, updates):
+        if "password" in updates:
+            updates["password"] = hash_password(updates["password"])
+
+        update_fields = ", ".join([f"{key} = %s" for key in updates.keys()])
+        query = f"""
+        UPDATE patients
+        SET {update_fields}
+        WHERE patient_id = %s
+        """
+        async with conn.cursor() as cur:
+            await cur.execute(query, (*updates.values(), patient_id))
+            await conn.commit()
+        return {"message": f"Patient with ID {patient_id} updated successfully!"}
+
+
+
+    @staticmethod
     async def delete_patient(conn, patient_id):
         query = "DELETE FROM patients WHERE patient_id = %s"
         async with conn.cursor() as cur:
