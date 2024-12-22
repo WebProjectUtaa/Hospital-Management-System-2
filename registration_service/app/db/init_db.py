@@ -16,7 +16,7 @@ async def init_db():
 
 async def get_db_connection():
     if pool is None:
-        raise RuntimeError("Couldn't connect to database.")
+        raise RuntimeError("Veritabanına bağlanılamadı. 'init_db' çağrılmamış olabilir.")
     return await pool.acquire()
 
 async def close_db():
@@ -25,8 +25,3 @@ async def close_db():
         pool.close()
         await pool.wait_closed()
         pool = None
-
-
-
-
-

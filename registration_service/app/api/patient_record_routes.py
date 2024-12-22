@@ -2,63 +2,48 @@ from sanic import Blueprint, response
 from app.services.patient_record_service import PatientRecordService
 from app.db.init_db import get_db_connection
 
-record_bp = Blueprint("patient_records")
+record_bp = Blueprint("record", url_prefix="/records")
 
-@record_bp.post("/records/register")
-async def register_record(request):
+@record_bp.post("/")
+async def add_record(request):
     data = request.json
-    conn = await get_db_connection()
-
+    required_fields = ["patient_id", "doctor_id", "department_id", "patient_status", "doctor_note"]
+    missing_fields = [field for field in required_fields if field not in data]
+    if missing_fields:
+        return response.json({"error": f"Missing required fields: {', '.join(missing_fields)}"}, status=400)
     try:
-        result = await PatientRecordService.add_record(
-            conn,
-            data["patient_id"], data["doctor_id"], data["department_id"],
-            data["patient_status"], data["doctor_note"], data["prescription"]
-        )
-        return response.json(result)
+        conn = await get_db_connection()
+        result = await PatientRecordService.add_record(conn, **data)
+        return response.json(result, status=201)
     except Exception as e:
         return response.json({"error": str(e)}, status=500)
-    finally:
-        conn.close()
 
-@record_bp.get("/records")
-async def view_records(request):
-    patient_id = request.args.get("patient_id")
-    doctor_id = request.args.get("doctor_id")
-    conn = await get_db_connection()
-
+@record_bp.get("/<patient_id:int>")
+async def get_records_by_patient(request, patient_id):
     try:
-        records = await PatientRecordService.get_records(conn, patient_id, doctor_id)
-        return response.json(records)
+        conn = await get_db_connection()
+        records = await PatientRecordService.get_records_by_patient(conn, patient_id)
+        return response.json(records, status=200)
     except Exception as e:
         return response.json({"error": str(e)}, status=500)
-    finally:
-        conn.close()
 
-@record_bp.put("/records/update/<record_id>")
+@record_bp.put("/<record_id:int>")
 async def update_record(request, record_id):
     data = request.json
-    conn = await get_db_connection()
-
+    if not data:
+        return response.json({"error": "No data provided"}, status=400)
     try:
-        result = await PatientRecordService.update_record(
-            conn, record_id,
-            data.get("patient_status"), data.get("doctor_note"), data.get("prescription")
-        )
-        return response.json(result)
+        conn = await get_db_connection()
+        result = await PatientRecordService.update_record(conn, record_id, data)
+        return response.json(result, status=200)
     except Exception as e:
         return response.json({"error": str(e)}, status=500)
-    finally:
-        conn.close()
 
-@record_bp.delete("/records/delete/<record_id>")
+@record_bp.delete("/<record_id:int>")
 async def delete_record(request, record_id):
-    conn = await get_db_connection()
-
     try:
+        conn = await get_db_connection()
         result = await PatientRecordService.delete_record(conn, record_id)
-        return response.json(result)
+        return response.json(result, status=200)
     except Exception as e:
         return response.json({"error": str(e)}, status=500)
-    finally:
-        conn.close()
