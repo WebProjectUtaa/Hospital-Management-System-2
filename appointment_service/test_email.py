@@ -11,8 +11,8 @@ async def test_appointment_workflow():
         print("Testing Appointment Creation...")
         creation_result = await AppointmentService.create_appointment(
             conn, 
-            patient_id=3,  # Web Project (Hasta)
-            doctor_id=3,   # Elif Naz (Doktor)
+            patient_id=3, 
+            doctor_id=3,
             date="2023-12-23", 
             time="10:00:00", 
             reason="Routine Check-up"
