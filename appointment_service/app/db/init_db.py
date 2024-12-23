@@ -1,12 +1,8 @@
 from aiomysql import create_pool, DictCursor
 
-pool = None 
-
+pool = None
 
 async def init_db():
-    """
-    Veritabanı bağlantı havuzunu başlatır.
-    """
     global pool
     if pool is None:
         pool = await create_pool(
@@ -19,14 +15,11 @@ async def init_db():
             autocommit=True
         )
 
-
 async def get_db_connection():
     global pool
     if pool is None:
         raise RuntimeError("Database connection pool is not initialized. Call 'init_db' first.")
-    return pool
-
-
+    return await pool.acquire()
 
 async def close_db():
     global pool
