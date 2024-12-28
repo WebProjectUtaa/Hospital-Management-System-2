@@ -1,31 +1,17 @@
 from sanic import Blueprint, response
 from app.services.appointment_service import AppointmentService
 from app.db.init_db import get_db_connection
-from app.api.auth_middleware import role_required
+from utils.auth_middleware import auth_middleware
 
 appointment_bp = Blueprint("appointment", url_prefix="/appointments")
 
-@appointment_bp.post("/")
-@role_required(["patient"])  # Sadece hastalar randevu oluşturabilir
-async def create_appointment(request):
-    data = request.json
-    required_fields = ["patient_id", "doctor_id", "appointment_date", "appointment_time", "reason"]
-    missing_fields = [field for field in required_fields if field not in data]
-
-    if missing_fields:
-        return response.json({"error": f"Missing required fields: {', '.join(missing_fields)}"}, status=400)
-
-    try:
-        conn = await get_db_connection()
-        result = await AppointmentService.create_appointment(conn, **data)
-        return response.json(result, status=201)
-    except Exception as e:
-        return response.json({"error": str(e)}, status=500)
-
 @appointment_bp.get("/")
-@role_required(["doctor", "patient"])  # Hastalar kendi randevularını, doktorlar ise hastalarının randevularını görebilir
+@auth_middleware  # Add Auth Middleware
 async def get_appointments(request):
-    user = request.ctx.user
+    """
+    Fetch appointments for the authenticated user.
+    """
+    user = request.ctx.user  # Middleware-provided user data
     try:
         conn = await get_db_connection()
         if user["role"] == "patient":
@@ -39,33 +25,26 @@ async def get_appointments(request):
     except Exception as e:
         return response.json({"error": str(e)}, status=500)
 
-@appointment_bp.put("/<appointment_id:int>")
-@role_required(["doctor"])  # Sadece doktorlar randevuları güncelleyebilir
-async def update_appointment(request, appointment_id):
+@appointment_bp.post("/")
+@auth_middleware  # Add Auth Middleware
+async def create_appointment(request):
+    """
+    Create a new appointment for the authenticated patient.
+    """
+    user = request.ctx.user  # Middleware-provided user data
+    if user["role"] != "patient":
+        return response.json({"error": "Only patients can create appointments."}, status=403)
+
     data = request.json
-    if not data:
-        return response.json({"error": "No data provided to update"}, status=400)
+    required_fields = ["patient_id", "doctor_id", "appointment_date", "appointment_time", "reason"]
+    missing_fields = [field for field in required_fields if field not in data]
+
+    if missing_fields:
+        return response.json({"error": f"Missing required fields: {', '.join(missing_fields)}"}, status=400)
 
     try:
         conn = await get_db_connection()
-        result = await AppointmentService.update_appointment(conn, appointment_id, data)
-        return response.json(result, status=200)
-    except Exception as e:
-        return response.json({"error": str(e)}, status=500)
-
-@appointment_bp.delete("/<appointment_id:int>")
-@role_required(["doctor", "patient"])  # Hastalar ve doktorlar randevuları iptal edebilir
-async def delete_appointment(request, appointment_id):
-    user = request.ctx.user
-    try:
-        conn = await get_db_connection()
-        if user["role"] == "doctor":
-            result = await AppointmentService.delete_appointment_by_doctor(conn, appointment_id, user["id"])
-        elif user["role"] == "patient":
-            result = await AppointmentService.delete_appointment_by_patient(conn, appointment_id, user["id"])
-        else:
-            return response.json({"error": "Unauthorized"}, status=403)
-
-        return response.json(result, status=200)
+        result = await AppointmentService.create_appointment(conn, **data)
+        return response.json(result, status=201)
     except Exception as e:
         return response.json({"error": str(e)}, status=500)

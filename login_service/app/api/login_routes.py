@@ -71,3 +71,20 @@ async def logout_user(request):
     token = auth_header.split(" ")[1]
     revoked_tokens.add(token)  # Add the token to the revoked list
     return response.json({"message": "Logout successful. Redirect to login page."}, status=200)
+
+@login_bp.post("/validate_token")
+async def validate_token(request):
+    """
+    Validate JWT token.
+    """
+    token = request.json.get("token")
+    if not token:
+        return response.json({"error": "Token is missing"}, status=400)
+
+    try:
+        decoded = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        return response.json({"message": "Token is valid", "data": decoded}, status=200)
+    except jwt.ExpiredSignatureError:
+        return response.json({"error": "Token has expired"}, status=401)
+    except jwt.InvalidTokenError:
+        return response.json({"error": "Invalid token"}, status=401)

@@ -1,7 +1,12 @@
 from sanic import Blueprint, response
 from app.services.auth_service import AuthService
 from app.db.init_db import get_db_connection
+from utils.jwt_utils import verify_token
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
+SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 auth_bp = Blueprint("auth_routes", url_prefix="/auth")
 
 @auth_bp.get("/select")
@@ -48,3 +53,18 @@ async def login(request):
             return response.json({"message": "Login successful", "data": result}, status=200)
         except Exception as e:
             return response.json({"error": str(e)}, status=500)
+
+@auth_bp.post("/validate_token")
+async def validate_token(request):
+    """
+    Token doğrulama endpoint'i.
+    """
+    token = request.json.get("token")
+    if not token:
+        return response.json({"error": "Token is missing"}, status=400)
+
+    try:
+        decoded = verify_token(token, SECRET_KEY)
+        return response.json({"message": "Token is valid", "data": decoded}, status=200)
+    except Exception as e:
+        return response.json({"error": str(e)}, status=401)

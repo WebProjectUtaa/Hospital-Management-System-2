@@ -1,4 +1,4 @@
-from app.utils.jwt_utils import create_token
+from utils.jwt_utils import create_token
 from app.utils.hash_utils import HashUtils  # Import the HashUtils class
 from app.db.models import AuthModel
 

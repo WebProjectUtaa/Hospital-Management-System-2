@@ -5,7 +5,10 @@ from app.services.doctoravailability_service import DoctorAvailabilityService
 class AppointmentService:
     @staticmethod
     async def create_appointment(conn, patient_id, doctor_id, date, time, reason):
-        # Çakışma kontrolü ve randevu oluşturma
+        """
+        Randevu oluşturma ve Notification Service ile entegrasyon.
+        """
+        # Çakışma kontrolü
         query = """
         SELECT COUNT(*) 
         FROM appointments 
@@ -17,6 +20,7 @@ class AppointmentService:
             if count["COUNT(*)"] > 0:
                 raise ValueError("The doctor is already booked for the selected date and time.")
 
+        # Randevuyu ekle
         await Appointment.add(conn, patient_id, doctor_id, date, time, reason)
         await DoctorAvailabilityService.update_doctor_availability(conn, doctor_id, date, time, is_available=0)
 
@@ -37,7 +41,7 @@ class AppointmentService:
 
         # Notification Service API çağrıları
         try:
-            notification_data = {
+            notification_data_patient = {
                 "to_email": patient["patient_email"],
                 "subject": "Appointment Confirmation",
                 "message": f"""
@@ -53,9 +57,7 @@ class AppointmentService:
                 Hospital Management System
                 """
             }
-            requests.post("http://localhost:8000/notifications", json=notification_data)
-
-            notification_data = {
+            notification_data_doctor = {
                 "to_email": doctor["email"],
                 "subject": "New Appointment Scheduled",
                 "message": f"""
@@ -71,7 +73,9 @@ class AppointmentService:
                 Hospital Management System
                 """
             }
-            requests.post("http://localhost:8000/notifications", json=notification_data)
+            # Notification Service'e REST istekleri
+            requests.post("http://localhost:8000/notifications/send_email", json=notification_data_patient)
+            requests.post("http://localhost:8000/notifications/send_email", json=notification_data_doctor)
         except Exception as e:
             print(f"Notification Service error: {e}")
 
@@ -79,6 +83,9 @@ class AppointmentService:
 
     @staticmethod
     async def cancel_appointment(conn, appointment_id):
+        """
+        Randevuyu iptal etme ve Notification Service ile entegrasyon.
+        """
         # Randevu bilgilerini al
         appointment_query = """
         SELECT 
@@ -106,7 +113,7 @@ class AppointmentService:
 
         # Notification Service API çağrıları
         try:
-            patient_notification = {
+            notification_data_patient = {
                 "to_email": appointment["patient_email"],
                 "subject": "Appointment Cancellation",
                 "message": f"""
@@ -118,9 +125,7 @@ class AppointmentService:
                 Hospital Management System
                 """
             }
-            requests.post("http://localhost:8000/notifications", json=patient_notification)
-
-            doctor_notification = {
+            notification_data_doctor = {
                 "to_email": appointment["doctor_email"],
                 "subject": "Appointment Cancellation Notification",
                 "message": f"""
@@ -135,7 +140,9 @@ class AppointmentService:
                 Hospital Management System
                 """
             }
-            requests.post("http://localhost:8000/notifications", json=doctor_notification)
+            # Notification Service'e REST istekleri
+            requests.post("http://localhost:8000/notifications/send_email", json=notification_data_patient)
+            requests.post("http://localhost:8000/notifications/send_email", json=notification_data_doctor)
         except Exception as e:
             print(f"Notification Service error: {e}")
 

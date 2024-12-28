@@ -1,14 +1,20 @@
 from sanic import Blueprint, response
 from app.services.notification_service import NotificationService
 from app.db.init_db import get_db_connection
+from utils.auth_middleware import auth_middleware
 
 notification_bp = Blueprint("notifications", url_prefix="/notifications")
 
-@notification_bp.route("/", methods=["POST"])
+@notification_bp.post("/")
+@auth_middleware  # Add Auth Middleware
 async def create_notification(request):
     """
-    Yeni bir bildirim oluşturur.
+    Create a new notification.
     """
+    user = request.ctx.user  # Middleware-provided user data
+    if user["role"] != "admin":
+        return response.json({"error": "Only admins can send notifications."}, status=403)
+
     data = request.json
     to_email = data.get("to_email")
     subject = data.get("subject")
@@ -28,11 +34,16 @@ async def create_notification(request):
     finally:
         await conn.ensure_closed()
 
-@notification_bp.route("/", methods=["GET"])
+@notification_bp.get("/")
+@auth_middleware  # Add Auth Middleware
 async def list_notifications(request):
     """
-    Mevcut bildirim loglarını listeler.
+    List notification logs.
     """
+    user = request.ctx.user  # Middleware-provided user data
+    if user["role"] not in ["admin", "doctor"]:
+        return response.json({"error": "Unauthorized access."}, status=403)
+
     conn = await get_db_connection()
     try:
         notifications = await NotificationService.list_notifications(conn)
