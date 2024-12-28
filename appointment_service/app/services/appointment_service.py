@@ -2,13 +2,21 @@ import requests
 from app.db.models import Appointment
 from app.services.doctoravailability_service import DoctorAvailabilityService
 
+
 class AppointmentService:
     @staticmethod
     async def create_appointment(conn, patient_id, doctor_id, date, time, reason):
         """
-        Randevu oluşturma ve Notification Service ile entegrasyon.
+        Create an appointment and notify the patient and doctor.
         """
-        # Çakışma kontrolü
+        # Fetch patient and doctor information
+        patient_info = await AppointmentService.fetch_patient_info(patient_id)
+        doctor_info = await AppointmentService.fetch_doctor_info(doctor_id)
+
+        if not patient_info or not doctor_info:
+            raise ValueError("Invalid patient or doctor ID provided.")
+
+        # Check for conflicting appointments
         query = """
         SELECT COUNT(*) 
         FROM appointments 
@@ -20,73 +28,90 @@ class AppointmentService:
             if count["COUNT(*)"] > 0:
                 raise ValueError("The doctor is already booked for the selected date and time.")
 
-        # Randevuyu ekle
+        # Add the appointment
         await Appointment.add(conn, patient_id, doctor_id, date, time, reason)
         await DoctorAvailabilityService.update_doctor_availability(conn, doctor_id, date, time, is_available=0)
 
-        # Hasta ve doktor bilgilerini al
-        patient_query = "SELECT patient_name, patient_email FROM patients WHERE patient_id = %s"
-        doctor_query = """
-        SELECT e.Employee_name, e.email
-        FROM doctors d
-        INNER JOIN employees e ON d.id = e.id
-        WHERE d.id = %s
-        """
-        async with conn.cursor() as cur:
-            await cur.execute(patient_query, (patient_id,))
-            patient = await cur.fetchone()
-
-            await cur.execute(doctor_query, (doctor_id,))
-            doctor = await cur.fetchone()
-
-        # Notification Service API çağrıları
-        try:
-            notification_data_patient = {
-                "to_email": patient["patient_email"],
-                "subject": "Appointment Confirmation",
-                "message": f"""
-                Dear {patient['patient_name']},
-
-                Your appointment has been successfully created with the following details:
-                - Date: {date}
-                - Time: {time}
-                - Doctor: {doctor['Employee_name']}
-                - Reason: {reason}
-
-                Best regards,
-                Hospital Management System
-                """
-            }
-            notification_data_doctor = {
-                "to_email": doctor["email"],
-                "subject": "New Appointment Scheduled",
-                "message": f"""
-                Dear Dr. {doctor['Employee_name']},
-
-                A new appointment has been scheduled:
-                - Patient: {patient['patient_name']}
-                - Date: {date}
-                - Time: {time}
-                - Reason: {reason}
-
-                Best regards,
-                Hospital Management System
-                """
-            }
-            # Notification Service'e REST istekleri
-            requests.post("http://localhost:8000/notifications/send_email", json=notification_data_patient)
-            requests.post("http://localhost:8000/notifications/send_email", json=notification_data_doctor)
-        except Exception as e:
-            print(f"Notification Service error: {e}")
+        # Send notifications to the patient and doctor
+        await AppointmentService.send_notifications(patient_info, doctor_info, date, time, reason)
 
         return {"message": "Appointment successfully created and notifications sent."}
 
     @staticmethod
+    async def fetch_patient_info(patient_id):
+        """
+        Fetch patient information from Registration Service.
+        """
+        try:
+            response = requests.get(f"http://localhost:8001/patients/{patient_id}")
+            if response.status_code == 200:
+                return response.json()
+        except Exception as e:
+            print(f"Error fetching patient info: {e}")
+        return None
+
+    @staticmethod
+    async def fetch_doctor_info(doctor_id):
+        """
+        Fetch doctor information from Registration Service.
+        """
+        try:
+            response = requests.get(f"http://localhost:8001/employees/{doctor_id}")
+            if response.status_code == 200:
+                return response.json()
+        except Exception as e:
+            print(f"Error fetching doctor info: {e}")
+        return None
+
+    @staticmethod
+    async def send_notifications(patient, doctor, date, time, reason):
+        """
+        Send notifications to the patient and doctor using Notification Service.
+        """
+        try:
+            patient_notification = {
+                "to_email": patient["email"],
+                "subject": "Appointment Confirmation",
+                "message": f"""
+                Dear {patient['name']},
+
+                Your appointment has been successfully created with the following details:
+                - Date: {date}
+                - Time: {time}
+                - Doctor: {doctor['name']}
+                - Reason: {reason}
+
+                Best regards,
+                Hospital Management System
+                """
+            }
+            doctor_notification = {
+                "to_email": doctor["email"],
+                "subject": "New Appointment Scheduled",
+                "message": f"""
+                Dear Dr. {doctor['name']},
+
+                A new appointment has been scheduled:
+                - Patient: {patient['name']}
+                - Date: {date}
+                - Time: {time}
+                - Reason: {reason}
+
+                Best regards,
+                Hospital Management System
+                """
+            }
+            requests.post("http://localhost:8000/notifications", json=patient_notification)
+            requests.post("http://localhost:8000/notifications", json=doctor_notification)
+        except Exception as e:
+            print(f"Notification Service error: {e}")
+
+    @staticmethod
     async def cancel_appointment(conn, appointment_id):
         """
-        Randevuyu iptal etme ve Notification Service ile entegrasyon.
+        Cancel an appointment and notify the patient and doctor.
         """
-        # Randevu bilgilerini al
+        # Fetch appointment information
         appointment_query = """
         SELECT 
             p.patient_email, p.patient_name, 
@@ -105,15 +130,15 @@ class AppointmentService:
         if not appointment:
             raise ValueError("Appointment not found.")
 
-        # Randevuyu sil
+        # Delete the appointment
         query = "DELETE FROM appointments WHERE appointment_id = %s"
         async with conn.cursor() as cur:
             await cur.execute(query, (appointment_id,))
             await conn.commit()
 
-        # Notification Service API çağrıları
+        # Send notifications about the cancellation
         try:
-            notification_data_patient = {
+            patient_notification = {
                 "to_email": appointment["patient_email"],
                 "subject": "Appointment Cancellation",
                 "message": f"""
@@ -125,7 +150,7 @@ class AppointmentService:
                 Hospital Management System
                 """
             }
-            notification_data_doctor = {
+            doctor_notification = {
                 "to_email": appointment["doctor_email"],
                 "subject": "Appointment Cancellation Notification",
                 "message": f"""
@@ -140,9 +165,8 @@ class AppointmentService:
                 Hospital Management System
                 """
             }
-            # Notification Service'e REST istekleri
-            requests.post("http://localhost:8000/notifications/send_email", json=notification_data_patient)
-            requests.post("http://localhost:8000/notifications/send_email", json=notification_data_doctor)
+            requests.post("http://localhost:8000/notifications", json=patient_notification)
+            requests.post("http://localhost:8000/notifications", json=doctor_notification)
         except Exception as e:
             print(f"Notification Service error: {e}")
 

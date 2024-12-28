@@ -1,12 +1,15 @@
 from sanic import Blueprint, response
 from app.services.auth_service import AuthService
 from app.db.init_db import get_db_connection
-from utils.jwt_utils import verify_token
+from utils.jwt_utils import verify_token, create_token
 from dotenv import load_dotenv
 import os
+import requests
 
 load_dotenv()
 SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+AUTH_SERVICE_URL = "http://localhost:8000/auth"
+
 auth_bp = Blueprint("auth_routes", url_prefix="/auth")
 
 @auth_bp.get("/select")
@@ -39,9 +42,8 @@ async def login(request):
     if not email or not password or not role:
         return response.json({"error": "Email, password, and role are required"}, status=400)
 
-    # Veritabanı işlemleri
-    async with await get_db_connection() as conn:
-        try:
+    try:
+        async with await get_db_connection() as conn:
             if role == "patient":
                 result = await AuthService.authenticate_patient(conn, email, password)
             else:
@@ -50,9 +52,21 @@ async def login(request):
             if "error" in result:
                 return response.json(result, status=401)
 
+            # Token üretme ve REST çağrısı
+            headers = {"Authorization": f"Bearer {result['token']}"}
+            try:
+                rest_call = requests.post(
+                    f"{AUTH_SERVICE_URL}/validate_token",
+                    headers=headers
+                )
+                if rest_call.status_code != 200:
+                    return response.json({"error": "Token validation failed"}, status=401)
+            except Exception as rest_error:
+                return response.json({"error": f"REST call failed: {rest_error}"}, status=500)
+
             return response.json({"message": "Login successful", "data": result}, status=200)
-        except Exception as e:
-            return response.json({"error": str(e)}, status=500)
+    except Exception as e:
+        return response.json({"error": str(e)}, status=500)
 
 @auth_bp.post("/validate_token")
 async def validate_token(request):
@@ -67,4 +81,31 @@ async def validate_token(request):
         decoded = verify_token(token, SECRET_KEY)
         return response.json({"message": "Token is valid", "data": decoded}, status=200)
     except Exception as e:
+        return response.json({"error": str(e)}, status=401)
+
+@auth_bp.post("/refresh_token")
+async def refresh_token(request):
+    """
+    Refresh token kullanarak yeni bir access token oluşturur.
+    """
+    # İstekten refresh token'i al
+    refresh_token = request.json.get("refresh_token")
+    if not refresh_token:
+        return response.json({"error": "Refresh token is missing"}, status=400)
+
+    try:
+        # Token doğrulama
+        decoded = verify_token(refresh_token, SECRET_KEY)
+
+        # Yeni access token oluştur
+        access_token = create_token({
+            "id": decoded["id"],
+            "email": decoded["email"],
+            "role": decoded["role"]
+        }, SECRET_KEY, expires_in=900)  # 15 dakikalık yeni access token
+
+        return response.json({"access_token": access_token}, status=200)
+
+    except Exception as e:
+        # Hata durumunda kullanıcıya bilgi gönder
         return response.json({"error": str(e)}, status=401)

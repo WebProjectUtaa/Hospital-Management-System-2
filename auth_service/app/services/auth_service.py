@@ -1,38 +1,37 @@
 from utils.jwt_utils import create_token
-from app.utils.hash_utils import HashUtils  # Import the HashUtils class
-from app.db.models import AuthModel
+from utils.http_utils import make_get_request, make_post_request
 
 class AuthService:
     @staticmethod
-    async def authenticate_employee(conn, email, password):
+    async def authenticate_employee(email, password):
         """
-        Employees tablosunda kimlik doğrulama.
+        Employees tablosunda kimlik doğrulama (Login Service ile iletişim).
         """
-        employee = await AuthModel.get_employee_by_email(conn, email)
-        if not employee or not HashUtils.verify_password(password, employee["password"]):
-            return {"error": "Invalid credentials"}
-
-        # JWT token oluştur
-        token = create_token({
-            "id": employee["id"],
-            "email": employee["email"],
-            "role": employee["role"]
-        })
-        return {"message": "Login successful", "token": token}
+        url = f"http://localhost:8002/login"
+        data = {"email": email, "password": password, "role": "employee"}
+        response = make_post_request(url, data)
+        if response and response.get("token"):
+            return response
+        raise ValueError("Invalid credentials for employee")
 
     @staticmethod
-    async def authenticate_patient(conn, email, password):
+    async def authenticate_patient(email, password):
         """
-        Patients tablosunda kimlik doğrulama.
+        Patients tablosunda kimlik doğrulama (Login Service ile iletişim).
         """
-        patient = await AuthModel.get_patient_by_email(conn, email)
-        if not patient or not HashUtils.verify_password(password, patient["password"]):
-            return {"error": "Invalid credentials"}
+        url = f"http://localhost:8002/login"
+        data = {"email": email, "password": password, "role": "patient"}
+        response = make_post_request(url, data)
+        if response and response.get("token"):
+            return response
+        raise ValueError("Invalid credentials for patient")
 
-        # JWT token oluştur
-        token = create_token({
-            "id": patient["id"],
-            "email": patient["email"],
-            "role": "patient"
-        })
-        return {"message": "Login successful", "token": token}
+    @staticmethod
+    def authorize_token(token):
+        """
+        Token doğrulama ve kullanıcı bilgisi döndürme.
+        """
+        payload = make_post_request("http://localhost:8002/refresh", {"refresh_token": token})
+        if payload:
+            return payload
+        raise ValueError("Invalid or expired token")
