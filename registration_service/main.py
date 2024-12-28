@@ -1,11 +1,13 @@
 from sanic import Sanic
-from app.api import blueprints
+from app.api.__init__ import patient_bp, employee_bp, record_bp, department_bp
 from app.db.init_db import init_db, close_db
 
 app = Sanic("RegistrationService")
 
-for bp in blueprints:
-    app.blueprint(bp)
+app.blueprint(patient_bp)
+app.blueprint(employee_bp)
+app.blueprint(record_bp)
+app.blueprint(department_bp)
 
 @app.before_server_start
 async def setup_db(app, loop):
@@ -16,4 +18,4 @@ async def shutdown_db(app, loop):
     await close_db()
 
 if __name__ == "__main__":
-    app.run(host="localhost", port=8000, debug=True)
+    app.run(host="localhost", port=8001, debug=True)

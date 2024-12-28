@@ -4,6 +4,7 @@ from app.db.init_db import get_db_connection
 from utils.jwt_utils import create_token
 from dotenv import load_dotenv
 import os
+import jwt
 
 # Çevresel değişkenleri yükle
 load_dotenv()
@@ -29,10 +30,34 @@ async def login(request):
             # Kullanıcı kimlik doğrulama
             user = await LoginService.authenticate_user(conn, email, password, role)
             if user:
-                # Kullanıcı doğrulandıysa JWT token oluştur
-                token = create_token({"id": user["id"], "email": user["email"], "role": user["role"]}, SECRET_KEY)
-                return response.json({"message": "Login successful", "token": token}, status=200)
+                # Kullanıcı doğrulandıysa Access ve Refresh token oluştur
+                access_token = create_token({"id": user["id"], "email": user["email"], "role": user["role"]}, SECRET_KEY, expires_in=9000)
+                refresh_token = create_token({"id": user["id"]}, SECRET_KEY, expires_in=604800)
+                return response.json({
+                    "message": "Login successful",
+                    "access_token": access_token,
+                    "refresh_token": refresh_token
+                }, status=200)
             else:
                 return response.json({"error": "Invalid credentials"}, status=401)
         except Exception as e:
             return response.json({"error": str(e)}, status=500)
+
+@login_bp.post("/refresh")
+async def refresh_token(request):
+    """
+    Refresh token ile yeni access token oluştur.
+    """
+    data = request.json
+    refresh_token = data.get("refresh_token")
+
+    try:
+        decoded_token = jwt.decode(refresh_token, SECRET_KEY, algorithms=["HS256"])
+        user_id = decoded_token["id"]
+        # Yeni access token oluştur
+        access_token = create_token({"id": user_id}, SECRET_KEY, expires_in=9000)
+        return response.json({"access_token": access_token}, status=200)
+    except jwt.ExpiredSignatureError:
+        return response.json({"error": "Refresh token expired"}, status=401)
+    except jwt.InvalidTokenError:
+        return response.json({"error": "Invalid token"}, status=401)

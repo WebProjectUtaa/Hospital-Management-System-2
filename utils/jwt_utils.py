@@ -1,15 +1,13 @@
 import jwt
 import datetime
 
-def create_token(user_id, secret_key):
+def create_token(payload, secret_key, expires_in=9000):
     """
-    Kullanıcı için JWT token oluşturur.
+    Kullanıcı için belirli bir süre geçerli olan JWT token oluşturur.
     """
-    payload = {
-        "user_id": user_id,
-        "exp": datetime.datetime.utcnow() + datetime.timedelta(days=1),  # 1 gün geçerli
-        "iat": datetime.datetime.utcnow()  # Token oluşturulma zamanı
-    }
+    now = datetime.datetime.now(datetime.timezone.utc)  # UTC zamanlı datetime
+    payload["exp"] = now + datetime.timedelta(seconds=expires_in)
+    payload["iat"] = now  # Token oluşturulma zamanı
     token = jwt.encode(payload, secret_key, algorithm="HS256")
     return token
 
