@@ -18,4 +18,4 @@ async def shutdown_db(app, loop):
     await close_db()
 
 if __name__ == "__main__":
-    app.run(host="localhost", port=8001, debug=True)
+    app.run(host="localhost", port=8002, debug=True)
