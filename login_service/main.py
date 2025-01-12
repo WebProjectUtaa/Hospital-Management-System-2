@@ -1,6 +1,7 @@
 from sanic import Sanic
-from app.api.login_routes import login_bp
-from app.db.init_db import init_db, close_db
+from login_service.app.api.login_routes import login_bp
+from login_service.app.db.init_db import init_db, close_db
+
 
 app = Sanic("LoginService")
 
@@ -18,4 +19,4 @@ async def teardown_db(app, loop):
     await close_db()
 
 if __name__ == "__main__":
-    app.run(host="localhost", port=8001, debug=True)
+    app.run(host="localhost", port=8001, debug=True, access_log=True)
