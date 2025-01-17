@@ -1,5 +1,5 @@
 import bcrypt
-from app.db.models import LoginModel
+from login_service.app.db.models import LoginModel
 
 
 class LoginService:

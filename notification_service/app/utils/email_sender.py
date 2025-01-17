@@ -1,4 +1,5 @@
 import smtplib
+import os
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
@@ -8,7 +9,7 @@ class EmailSender:
         smtp_server = "smtp.gmail.com"
         smtp_port = 587
         sender_email = "alilivanturk@gmail.com"  
-        sender_password = "vedm ztjy mlyz pzql"
+        sender_password = os.getenv("EMAIL_PASSWORD")
 
         msg = MIMEMultipart()
         msg["From"] = sender_email

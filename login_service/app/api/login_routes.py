@@ -1,13 +1,13 @@
 from sanic import Blueprint, response as sanic_response
-from app.services.login_service import LoginService
-from app.db.init_db import get_db_connection
+from login_service.app.services.login_service import LoginService
+from login_service.app.db.init_db import get_db_connection
 from utils.jwt_utils import create_token, verify_token
 from dotenv import load_dotenv
 import os
 import jwt
 import requests
 
-NOTIFICATION_SERVICE_URL = "http://localhost:8000/notifications"
+NOTIFICATION_SERVICE_URL = "http://localhost:8005/notifications"
 APPOINTMENT_SERVICE_URL = "http://localhost:8001/appointments"
 
 # Load environment variables

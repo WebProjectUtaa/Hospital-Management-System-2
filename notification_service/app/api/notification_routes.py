@@ -2,6 +2,8 @@ from sanic import Blueprint, response
 from app.services.notification_service import NotificationService
 from app.db.init_db import get_db_connection
 from utils.auth_middleware import auth_middleware
+from app.utils.email_sender import EmailSender
+
 
 notification_bp = Blueprint("notifications", url_prefix="/notifications")
 
@@ -121,3 +123,22 @@ async def filter_notifications(request):
         return response.json({"error": str(e)}, status=500)
     finally:
         await conn.ensure_closed()
+
+@notification_bp.post("/send_email")
+async def send_email(request):
+    """
+    Send an email notification.
+    """
+    data = request.json
+    to_email = data.get("to_email")
+    subject = data.get("subject")
+    message = data.get("message")
+
+    if not (to_email and subject and message):
+        return response.json({"error": "Missing required fields."}, status=400)
+
+    try:
+        EmailSender.send_email(to_email, subject, message)
+        return response.json({"message": "Email sent successfully"}, status=200)
+    except Exception as e:
+        return response.json({"error": str(e)}, status=500)
