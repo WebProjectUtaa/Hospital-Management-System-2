@@ -11,4 +11,4 @@ Start-Process -NoNewWindow -FilePath "python" -ArgumentList "patient_service/mai
 Start-Process -NoNewWindow -FilePath "python" -ArgumentList "registration_service/main.py"
 Start-Process -NoNewWindow -FilePath "python" -ArgumentList "admin_service/main.py"
 
-Write-Host "All microservices started. Press Ctrl+C to stop."
+Write-Host "All microservices sta. Press Ctrl+C to stop."
