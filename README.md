@@ -31,7 +31,6 @@ Hospital-Management-System-2
 ├── patient_service
 ├── registration_service
 ├── utils
-└── webproject
 ```
 
 ### Key Files
