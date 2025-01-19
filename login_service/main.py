@@ -1,3 +1,7 @@
+import sys
+from os.path import dirname, abspath
+sys.path.append(dirname(dirname(abspath(__file__))))
+
 from sanic import Sanic
 from login_service.app.api.login_routes import login_bp
 from login_service.app.db.init_db import init_db, close_db

@@ -1,3 +1,7 @@
+import sys
+from os.path import dirname, abspath
+sys.path.append(dirname(dirname(abspath(__file__))))
+
 from sanic import Sanic
 from app.api.admin_routes import admin_bp
 from app.db.init_db import init_db, close_db
