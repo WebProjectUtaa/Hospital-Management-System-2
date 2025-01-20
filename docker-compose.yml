@@ -1,0 +1,132 @@
+version: '3.8'
+
+services:
+  admin_service:
+    build:
+      context: ./admin_service
+      dockerfile: Dockerfile
+    ports:
+      - "8009:8009"
+    volumes:
+      - ../utils:/app/utils
+    environment:
+      - PYTHONPATH=/app
+    env_file:
+      - .env
+
+  appointment_service:
+    build:
+      context: ./appointment_service
+      dockerfile: Dockerfile
+    ports:
+      - "8003:8003"
+    volumes:
+      - ../utils:/app/utils
+    environment:
+      - PYTHONPATH=/app
+    env_file:
+      - .env
+
+  auth_service:
+    build:
+      context: ./auth_service
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../utils:/app/utils
+    environment:
+      - PYTHONPATH=/app
+    env_file:
+      - .env
+
+  doctor_service:
+    build:
+      context: ./doctor_service
+      dockerfile: Dockerfile
+    ports:
+      - "8004:8004"
+    volumes:
+      - ../utils:/app/utils
+    environment:
+      - PYTHONPATH=/app
+    env_file:
+      - .env
+
+  lab_test_service:
+    build:
+      context: ./lab_test_service
+      dockerfile: Dockerfile
+    ports:
+      - "8008:8008"
+    volumes:
+      - ../utils:/app/utils
+    environment:
+      - PYTHONPATH=/app
+    env_file:
+      - .env
+
+  notification_service:
+    build:
+      context: ./notification_service
+      dockerfile: Dockerfile
+    ports:
+      - "8005:8005"
+    volumes:
+      - ../utils:/app/utils
+    environment:
+      - PYTHONPATH=/app
+    env_file:
+      - .env
+
+  nurse_service:
+    build:
+      context: ./nurse_service
+      dockerfile: Dockerfile
+    ports:
+      - "8006:8006"
+    volumes:
+      - ../utils:/app/utils
+    environment:
+      - PYTHONPATH=/app
+    env_file:
+      - .env
+
+  patient_service:
+    build:
+      context: ./patient_service
+      dockerfile: Dockerfile
+    ports:
+      - "8007:8007"
+    volumes:
+      - ../utils:/app/utils
+    environment:
+      - PYTHONPATH=/app
+    env_file:
+      - .env
+
+  registration_service:
+    build:
+      context: ./registration_service
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8002"
+    volumes:
+      - ../utils:/app/utils
+    environment:
+      - PYTHONPATH=/app
+    env_file:
+      - .env
+
+  login_service:
+    build:
+      context: ./login_service
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    volumes:
+      - ../utils:/app/utils
+    environment:
+      - PYTHONPATH=/app
+    env_file:
+      - .env

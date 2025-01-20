@@ -2,6 +2,10 @@ import smtplib
 import os
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from dotenv import load_dotenv
+
+# .env dosyasını yükleyin
+load_dotenv()
 
 class EmailSender:
     @staticmethod
@@ -9,7 +13,7 @@ class EmailSender:
         smtp_server = "smtp.gmail.com"
         smtp_port = 587
         sender_email = "alilivanturk@gmail.com"  
-        sender_password = os.getenv("EMAIL_PASSWORD")
+        sender_password = os.getenv("EMAIL_PASSWORD")  # .env'den okunur
 
         msg = MIMEMultipart()
         msg["From"] = sender_email
@@ -25,4 +29,3 @@ class EmailSender:
                 print(f"Email sent to {to_email}")
         except Exception as e:
             print(f"Failed to send email: {e}")
-

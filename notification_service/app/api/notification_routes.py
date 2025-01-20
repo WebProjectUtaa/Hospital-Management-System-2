@@ -2,7 +2,7 @@ from sanic import Blueprint, response
 from app.services.notification_service import NotificationService
 from app.db.init_db import get_db_connection
 from utils.auth_middleware import auth_middleware
-from app.utils.email_sender import EmailSender
+from utils.email_sender import EmailSender
 
 
 notification_bp = Blueprint("notifications", url_prefix="/notifications")

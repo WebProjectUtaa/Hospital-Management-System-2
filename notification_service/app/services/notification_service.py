@@ -1,4 +1,4 @@
-from app.utils.email_sender import EmailSender
+from utils.email_sender import EmailSender
 from app.db.models import NotificationLog
 
 class NotificationService:
