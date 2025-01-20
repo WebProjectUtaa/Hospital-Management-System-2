@@ -1,8 +1,9 @@
 import sys
 from os.path import dirname, abspath
-sys.path.append(dirname(dirname(abspath(__file__))))
-
 from sanic import Sanic
+
+# Proje root dizinini PYTHONPATH'e ekle
+sys.path.append(dirname(dirname(abspath(__file__))))
 from login_service.app.api.login_routes import login_bp
 from login_service.app.db.init_db import init_db, close_db
 
@@ -23,4 +24,4 @@ async def teardown_db(app, loop):
     await close_db()
 
 if __name__ == "__main__":
-    app.run(host="localhost", port=8001, debug=True, access_log=True)
+    app.run(host="0.0.0.0", port=8001, debug=True, access_log=True)

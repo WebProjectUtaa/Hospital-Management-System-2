@@ -1,8 +1,10 @@
 import sys
 from os.path import dirname, abspath
+from sanic import Sanic
+
+# Proje root dizinini PYTHONPATH'e ekle
 sys.path.append(dirname(dirname(abspath(__file__))))
 
-from sanic import Sanic
 from app.api.patient_routes import patient_bp
 from app.db.init_db import init_db, close_db
 
@@ -22,4 +24,8 @@ async def teardown_db(app, loop):
     await close_db()
 
 if __name__ == "__main__":
-    app.run(host="localhost", port=8007, debug=True)
+    app.run(
+        host="0.0.0.0",  # Docker içinde çalışacağı için localhost yerine 0.0.0.0
+        port=8007,
+        debug=True
+    )

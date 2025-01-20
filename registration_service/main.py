@@ -1,8 +1,9 @@
 import sys
 from os.path import dirname, abspath
-sys.path.append(dirname(dirname(abspath(__file__))))
-
 from sanic import Sanic
+
+# Proje root dizinini PYTHONPATH'e ekle
+sys.path.append(dirname(dirname(abspath(__file__))))
 from app.api.__init__ import patient_bp, employee_bp, record_bp, department_bp
 from app.db.init_db import init_db, close_db
 
@@ -22,4 +23,7 @@ async def shutdown_db(app, loop):
     await close_db()
 
 if __name__ == "__main__":
-    app.run(host="localhost", port=8002, debug=True)
+    app.run(host="0.0.0.0", 
+            port=8002, 
+            debug=True,
+            auto_reload=True)
